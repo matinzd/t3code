@@ -27,6 +27,8 @@ export const PullRequestMarkdownContext = createContext<{
 } | null>(null);
 
 const NO_REMARK_PLUGINS: PluggableList = [];
+// Loading early keeps PR text from rendering once with shortcodes and again with emoji.
+void emojiShortcodeStore.preload();
 
 function PullRequestHostVideo({
   environmentId,

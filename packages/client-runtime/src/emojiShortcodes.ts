@@ -68,7 +68,7 @@ export function createEmojiShortcodeStore(load: () => Promise<Readonly<Record<st
   };
 }
 
-/** Kept out of the bundle that starts the app. */
+/** Kept out of the bundle that starts the app; web preloads it in the background. */
 export const emojiShortcodeStore = createEmojiShortcodeStore(() =>
   import("./emojiShortcodes.json").then((table) => table.default),
 );

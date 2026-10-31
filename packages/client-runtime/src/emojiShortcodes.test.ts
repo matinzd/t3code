@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { replaceEmojiShortcodes } from "./emojiShortcodes.ts";
+import { createEmojiShortcodeStore, replaceEmojiShortcodes } from "./emojiShortcodes.ts";
 
 const table = new Map([
   ["+1", "👍"],
@@ -19,5 +19,25 @@ describe("replaceEmojiShortcodes", () => {
     ["at 10:30:00 and a:b", "at 10:30:00 and a:b"],
   ])("%s", (text, expected) => {
     expect(replaceEmojiShortcodes(text, table)).toBe(expected);
+  });
+});
+
+describe("createEmojiShortcodeStore", () => {
+  it("retries after a failed load and notifies only mounted subscribers", async () => {
+    const loads = [Promise.reject(new Error("chunk failed")), Promise.resolve({ rocket: "🚀" })];
+    const store = createEmojiShortcodeStore(() => loads.shift()!);
+    const mounted = vi.fn();
+    const unmounted = vi.fn();
+    store.subscribe(mounted);
+    const unsubscribe = store.subscribe(unmounted);
+    await store.preload();
+    expect(store.getSnapshot()).toBeNull();
+
+    unsubscribe();
+    store.subscribe(() => {});
+    await store.preload();
+    expect(store.getSnapshot()?.get("rocket")).toBe("🚀");
+    expect(mounted).toHaveBeenCalledTimes(1);
+    expect(unmounted).not.toHaveBeenCalled();
   });
 });

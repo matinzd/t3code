@@ -1,8 +1,5 @@
 import { ExternalLinkIcon, PaperclipIcon } from "lucide-react";
-import {
-  loadedEmojiShortcodes,
-  subscribeEmojiShortcodes,
-} from "@t3tools/client-runtime/emoji-shortcodes";
+import { emojiShortcodeStore } from "@t3tools/client-runtime/emoji-shortcodes";
 import { markdownImageSourceFragment } from "@t3tools/client-runtime/markdown-images";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import {
@@ -77,7 +74,10 @@ export function PullRequestMarkdown({
   const segments = splitPullRequestBody(text);
   const context = useContext(PullRequestMarkdownContext);
   const resolvedThreadRef = threadRef ?? context?.threadRef ?? undefined;
-  const shortcodes = useSyncExternalStore(subscribeEmojiShortcodes, loadedEmojiShortcodes);
+  const shortcodes = useSyncExternalStore(
+    emojiShortcodeStore.subscribe,
+    emojiShortcodeStore.getSnapshot,
+  );
   const remarkPlugins = withEmojiShortcodes(
     context?.remarkPlugins ?? NO_REMARK_PLUGINS,
     shortcodes,

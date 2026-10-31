@@ -48,6 +48,12 @@ it.each([
   ["inline code", "Ship it :rocket: `:tada:`", "code", ":tada:"],
   ["raw HTML code", "Ship it :rocket: <code>:tada:</code>", "code", ":tada:"],
   [
+    "a bare URL",
+    "Ship it :rocket: https://example.com/:tada:/x",
+    "a",
+    "https://example.com/:tada:/x",
+  ],
+  [
     "raw HTML blocks",
     "Ship it :rocket:\n\n<details>\n<summary>:tada: Deploy</summary>\n\nBody\n</details>",
     "[data-markdown-details-summary]",

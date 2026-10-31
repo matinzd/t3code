@@ -91,8 +91,22 @@ type HtmlNode = {
   type: string;
   tagName?: string;
   value?: string;
+  properties?: { href?: unknown };
   children?: HtmlNode[];
 };
+
+const textContent = (node: HtmlNode): string =>
+  node.type === "text" ? (node.value ?? "") : (node.children ?? []).map(textContent).join("");
+
+/** A bare or `<...>` autolink, whose text is its URL. */
+function isUrlLink(node: HtmlNode): boolean {
+  const href = node.properties?.href;
+  const text = textContent(node);
+  return (
+    typeof href === "string" &&
+    (href === text || href === `http://${text}` || href === `mailto:${text}`)
+  );
+}
 
 /** Runs on HTML, after raw HTML is parsed, so it sees the text GitHub's emoji filter does. */
 function rehypeEmojiShortcodes(options: { readonly shortcodes: EmojiShortcodes }) {
@@ -103,6 +117,7 @@ function rehypeEmojiShortcodes(options: { readonly shortcodes: EmojiShortcodes }
     }
     if (node.type === "element") {
       if (EMOJI_LITERAL_HTML_TAGS.has(node.tagName ?? "")) return;
+      if (node.tagName === "a" && isUrlLink(node)) return;
     }
     node.children?.forEach(visit);
   };

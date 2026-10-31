@@ -57,7 +57,7 @@ export function rewritePullRequestMarkdown(
   autolinks: ((text: string) => ReadonlyArray<ReferenceAutolink>) | null,
   shortcodes: EmojiShortcodes | null,
 ): string {
-  if (autolinks === null && shortcodes === null) return markdown;
+  if (autolinks === null && (shortcodes === null || !markdown.includes(":"))) return markdown;
   const emojify = (source: string) =>
     shortcodes === null ? source : replaceSourceShortcodes(source, shortcodes);
   const edits: { start: number; end: number; value: string }[] = [];

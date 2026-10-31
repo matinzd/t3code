@@ -11,6 +11,7 @@ const github = changeRequestReferenceAutolinker({
 const shortcodes = new Map([
   ["rocket", "🚀"],
   ["tada", "🎉"],
+  ["white_check_mark", "✅"],
 ]);
 
 describe("rewritePullRequestMarkdown", () => {
@@ -58,6 +59,11 @@ describe("rewritePullRequestMarkdown", () => {
       "keeps reference labels",
       "[:rocket:] [:tada:][] [:tada: notes][x]\n\n[:rocket:]: https://a.com\n[:tada:]: https://b.com\n[x]: https://c.com",
       "[:rocket:] [:tada:][] [🎉 notes][x]\n\n[:rocket:]: https://a.com\n[:tada:]: https://b.com\n[x]: https://c.com",
+    ],
+    [
+      "reads escapes like the parser",
+      "\\:rocket: and :white\\_check\\_mark: and \\\\:tada:",
+      "🚀 and ✅ and \\\\🎉",
     ],
   ])("emoji shortcodes: %s", (_case, text, expected) => {
     expect(rewritePullRequestMarkdown(text, null, shortcodes)).toBe(expected);

@@ -13,7 +13,7 @@ export const EMOJI_LITERAL_HTML_TAGS: ReadonlySet<string> = new Set([
 
 const SHORTCODE = /:([a-z0-9_+-]+):/g;
 
-function findEmojiShortcodes(
+export function findEmojiShortcodes(
   text: string,
   table: EmojiShortcodes,
 ): ReadonlyArray<{ readonly index: number; readonly length: number; readonly emoji: string }> {

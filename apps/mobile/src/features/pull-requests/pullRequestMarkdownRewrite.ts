@@ -1,5 +1,5 @@
 import {
-  replaceEmojiShortcodes,
+  findEmojiShortcodes,
   type EmojiShortcodes,
 } from "@t3tools/client-runtime/emoji-shortcodes";
 import type { ReferenceAutolink } from "@t3tools/client-runtime/source-control-clients";
@@ -29,11 +29,32 @@ const LITERAL_TYPES = new Set([
   "definition",
 ]);
 const LINK_TYPES = new Set(["link", "linkReference"]);
+const ESCAPABLE = /^[!-/:-@[-`{-~]$/u;
+
+/** Replaces shortcodes in markdown source as the parser reads it, so `\:x\_y:` counts. */
+function replaceSourceShortcodes(source: string, table: EmojiShortcodes): string {
+  if (!source.includes(":")) return source;
+  let text = "";
+  const offsets: number[] = [];
+  for (let index = 0; index < source.length; index++) {
+    offsets.push(index);
+    if (source[index] === "\\" && ESCAPABLE.test(source[index + 1] ?? "")) index++;
+    text += source[index];
+  }
+  offsets.push(source.length);
+  let result = "";
+  let last = 0;
+  for (const match of findEmojiShortcodes(text, table)) {
+    result += source.slice(last, offsets[match.index]) + match.emoji;
+    last = offsets[match.index + match.length]!;
+  }
+  return last === 0 ? source : result + source.slice(last);
+}
 
 /**
  * Rewrites the markdown's prose for the native renderer, which takes markdown text: references
- * `autolinks` finds become markdown links and emoji shortcodes become emoji. Text is searched as
- * written, escapes included.
+ * `autolinks` finds become markdown links and emoji shortcodes become emoji. References are
+ * searched as written, escapes included.
  */
 export function rewritePullRequestMarkdown(
   markdown: string,
@@ -42,7 +63,7 @@ export function rewritePullRequestMarkdown(
 ): string {
   if (autolinks === null && shortcodes === null) return markdown;
   const emojify = (text: string) =>
-    shortcodes === null ? text : replaceEmojiShortcodes(text, shortcodes);
+    shortcodes === null ? text : replaceSourceShortcodes(text, shortcodes);
   const edits: { start: number; end: number; value: string }[] = [];
   const visit = (node: MarkdownNode, inLink: boolean) => {
     if (LITERAL_TYPES.has(node.type)) return;

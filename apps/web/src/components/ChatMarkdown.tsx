@@ -243,6 +243,8 @@ interface ChatMarkdownProps {
   onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
   /** Keep one list per configuration (a module constant): it keys the shared parse cache. */
   extraRemarkPlugins?: NonNullable<ReactMarkdownOptions["remarkPlugins"]>;
+  /** Runs after raw HTML is parsed. Keep one list per configuration, like `extraRemarkPlugins`. */
+  extraRehypePlugins?: NonNullable<ReactMarkdownOptions["rehypePlugins"]>;
   renderContextReference?: ((reference: ChatMarkdownContextReference) => ReactNode) | undefined;
   /** Loads media a source control host keeps behind a credential through the server, which holds
       `cwd`'s; without it a private repository's uploads load unauthenticated and 404. */
@@ -257,7 +259,7 @@ export interface ChatMarkdownContextReference {
 }
 
 const EMPTY_MARKDOWN_SKILLS: ReadonlyArray<ServerProviderSkill> = [];
-const EMPTY_REMARK_PLUGINS: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [];
+const EMPTY_PLUGINS: PluggableList = [];
 
 const ARTIFACT_TEMPLATE_ICON_BY_KIND = {
   document: FileTextIcon,
@@ -1716,7 +1718,8 @@ function ChatMarkdown({
   inline = false,
   lineBreaks = false,
   parseRawHtml = true,
-  extraRemarkPlugins = EMPTY_REMARK_PLUGINS,
+  extraRemarkPlugins = EMPTY_PLUGINS,
+  extraRehypePlugins = EMPTY_PLUGINS,
   ...props
 }: ChatMarkdownProps) {
   const { componentState, handleCopy, markdownRef, localMediaPreview, closeLocalMediaPreview } =
@@ -1774,11 +1777,12 @@ function ChatMarkdown({
             key={index}
             text={source}
             remarkPlugins={remarkPlugins}
-            rehypePlugins={
+            rehypePlugins={withExtraPlugins(
               parseRawHtml
                 ? CHAT_MARKDOWN_RENDER_REHYPE_PLUGINS
-                : CHAT_MARKDOWN_LITERAL_HTML_REHYPE_PLUGINS
-            }
+                : CHAT_MARKDOWN_LITERAL_HTML_REHYPE_PLUGINS,
+              extraRehypePlugins,
+            )}
             shared={!uncachedPlugins}
             // Every block before the last is finished, so its parse can be reused.
             cache={!props.isStreaming || index < blocks.length - 1}

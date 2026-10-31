@@ -17,7 +17,7 @@ import { PULL_REQUESTS_PANEL_REF } from "~/rightPanelStore";
 
 import ChatMarkdown from "../ChatMarkdown";
 import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
-import { splitPullRequestBody, withEmojiShortcodes } from "./pullRequestMarkdown.logic";
+import { emojiShortcodePlugins, splitPullRequestBody } from "./pullRequestMarkdown.logic";
 
 export const PullRequestMarkdownContext = createContext<{
   /** Stable per repository, so comments share one renderer and its parse cache. */
@@ -80,10 +80,6 @@ export function PullRequestMarkdown({
     emojiShortcodeStore.subscribe,
     emojiShortcodeStore.getSnapshot,
   );
-  const remarkPlugins = withEmojiShortcodes(
-    context?.remarkPlugins ?? NO_REMARK_PLUGINS,
-    shortcodes,
-  );
   return (
     <div
       className={cn(
@@ -102,7 +98,8 @@ export function PullRequestMarkdown({
               threadRef={resolvedThreadRef}
               pullRequestPanelRef={resolvedThreadRef ?? PULL_REQUESTS_PANEL_REF}
               environmentId={environmentId}
-              extraRemarkPlugins={remarkPlugins}
+              extraRemarkPlugins={context?.remarkPlugins ?? NO_REMARK_PLUGINS}
+              extraRehypePlugins={emojiShortcodePlugins(shortcodes)}
               lineBreaks={lineBreaks ?? context?.lineBreaks ?? false}
               sourceControlMedia
             />

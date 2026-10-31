@@ -2,6 +2,15 @@ import * as Effect from "effect/Effect";
 
 export type EmojiShortcodes = ReadonlyMap<string, string>;
 
+/** HTML whose text GitHub keeps as written. */
+export const EMOJI_LITERAL_HTML_TAGS: ReadonlySet<string> = new Set([
+  "code",
+  "pre",
+  "tt",
+  "script",
+  "style",
+]);
+
 const SHORTCODE = /:([a-z0-9_+-]+):/g;
 
 function findEmojiShortcodes(

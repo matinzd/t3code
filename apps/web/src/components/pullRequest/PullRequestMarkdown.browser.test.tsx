@@ -44,8 +44,17 @@ it("lets text the host did not write opt out of the host's breaks", async () => 
   expect(screen.container.querySelectorAll("p br")).toHaveLength(0);
 });
 
-it("renders emoji shortcodes outside code once the table loads", async () => {
-  await using screen = await renderBody("github", { text: "Ship it :rocket: `:tada:`" });
+it.each([
+  ["inline code", "Ship it :rocket: `:tada:`", "code", ":tada:"],
+  ["raw HTML code", "Ship it :rocket: <code>:tada:</code>", "code", ":tada:"],
+  [
+    "raw HTML blocks",
+    "Ship it :rocket:\n\n<details>\n<summary>:tada: Deploy</summary>\n\nBody\n</details>",
+    "[data-markdown-details-summary]",
+    "🎉 Deploy",
+  ],
+])("renders emoji shortcodes in prose, with %s", async (_case, text, selector, expected) => {
+  await using screen = await renderBody("github", { text });
   await expect.element(screen.getByText("Ship it 🚀", { exact: false })).toBeInTheDocument();
-  expect(screen.container.querySelector("code")?.textContent).toBe(":tada:");
+  expect(screen.container.querySelector(selector)?.textContent).toBe(expected);
 });

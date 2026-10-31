@@ -1,4 +1,5 @@
 import {
+  EMOJI_LITERAL_HTML_TAGS,
   replaceEmojiShortcodes,
   type EmojiShortcodes,
 } from "@t3tools/client-runtime/emoji-shortcodes";
@@ -86,28 +87,34 @@ export function pullRequestAutolinkPlugins(
   return plugins;
 }
 
-function remarkEmojiShortcodes(options: { readonly shortcodes: EmojiShortcodes }) {
-  const visit = (node: MarkdownNode): void => {
+type HtmlNode = {
+  type: string;
+  tagName?: string;
+  value?: string;
+  children?: HtmlNode[];
+};
+
+/** Runs on HTML, after raw HTML is parsed, so it sees the text GitHub's emoji filter does. */
+function rehypeEmojiShortcodes(options: { readonly shortcodes: EmojiShortcodes }) {
+  const visit = (node: HtmlNode): void => {
     if (node.type === "text" && node.value !== undefined) {
       node.value = replaceEmojiShortcodes(node.value, options.shortcodes);
+      return;
+    }
+    if (node.type === "element") {
+      if (EMOJI_LITERAL_HTML_TAGS.has(node.tagName ?? "")) return;
     }
     node.children?.forEach(visit);
   };
-  return (tree: MarkdownNode) => visit(tree);
+  return (tree: HtmlNode) => visit(tree);
 }
 
-const emojiPlugins = new WeakMap<PluggableList, PluggableList>();
+const NO_EMOJI_PLUGINS: PluggableList = [];
+let emojiPlugins: PluggableList | null = null;
 
-/** One list per base list, so adding emoji keeps comments on one shared renderer. */
-export function withEmojiShortcodes(
-  plugins: PluggableList,
-  shortcodes: EmojiShortcodes | null,
-): PluggableList {
-  if (shortcodes === null) return plugins;
-  let combined = emojiPlugins.get(plugins);
-  if (combined === undefined) {
-    combined = [...plugins, [remarkEmojiShortcodes, { shortcodes }]];
-    emojiPlugins.set(plugins, combined);
-  }
-  return combined;
+/** One list for the loaded table, so every comment shares one renderer and its parse cache. */
+export function emojiShortcodePlugins(shortcodes: EmojiShortcodes | null): PluggableList {
+  if (shortcodes === null) return NO_EMOJI_PLUGINS;
+  emojiPlugins ??= [[rehypeEmojiShortcodes, { shortcodes }]];
+  return emojiPlugins;
 }

@@ -65,6 +65,16 @@ describe("rewritePullRequestMarkdown", () => {
       "\\:rocket: and :white\\_check\\_mark: and \\\\:tada:",
       "🚀 and ✅ and \\\\🎉",
     ],
+    [
+      "replaces raw HTML text",
+      "<details>\n<summary>:rocket: Deploy</summary>\n\nBody\n</details>",
+      "<details>\n<summary>🚀 Deploy</summary>\n\nBody\n</details>",
+    ],
+    [
+      "keeps raw HTML code",
+      "use <code>:tada:</code> and <pre>:tada:</pre> :rocket:",
+      "use <code>:tada:</code> and <pre>:tada:</pre> 🚀",
+    ],
   ])("emoji shortcodes: %s", (_case, text, expected) => {
     expect(rewritePullRequestMarkdown(text, null, shortcodes)).toBe(expected);
   });

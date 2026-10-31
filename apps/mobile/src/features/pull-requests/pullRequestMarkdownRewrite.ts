@@ -1,5 +1,7 @@
 import {
+  EMOJI_LITERAL_HTML_TAGS,
   findEmojiShortcodes,
+  replaceEmojiShortcodes,
   type EmojiShortcodes,
 } from "@t3tools/client-runtime/emoji-shortcodes";
 import type { ReferenceAutolink } from "@t3tools/client-runtime/source-control-clients";
@@ -20,15 +22,9 @@ type MarkdownNode = {
 };
 
 const parser = unified().use(remarkParse).use(remarkGfm);
-const LITERAL_TYPES = new Set([
-  "image",
-  "imageReference",
-  "code",
-  "inlineCode",
-  "html",
-  "definition",
-]);
+const LITERAL_TYPES = new Set(["image", "imageReference", "code", "inlineCode", "definition"]);
 const LINK_TYPES = new Set(["link", "linkReference"]);
+const HTML_TAG = /<(\/)?([a-z][a-z0-9-]*)(?=[\s/>])[^>]*>/giu;
 const ESCAPABLE = /^[!-/:-@[-`{-~]$/u;
 
 /** Replaces shortcodes in markdown source as the parser reads it, so `\:x\_y:` counts. */
@@ -62,8 +58,8 @@ export function rewritePullRequestMarkdown(
   shortcodes: EmojiShortcodes | null,
 ): string {
   if (autolinks === null && shortcodes === null) return markdown;
-  const emojify = (text: string) =>
-    shortcodes === null ? text : replaceSourceShortcodes(text, shortcodes);
+  const emojify = (source: string) =>
+    shortcodes === null ? source : replaceSourceShortcodes(source, shortcodes);
   const edits: { start: number; end: number; value: string }[] = [];
   const visit = (node: MarkdownNode, inLink: boolean) => {
     if (LITERAL_TYPES.has(node.type)) return;
@@ -85,17 +81,37 @@ export function rewritePullRequestMarkdown(
       value += emojify(text.slice(last));
       if (value !== text) edits.push({ start, end, value });
     } else if (node.children !== undefined) {
-      let protectedHtmlDepth = 0;
+      let literalDepth = 0;
+      let anchorDepth = 0;
       for (const child of node.children) {
-        if (child.type === "html") {
-          const tagStart = child.position?.start.offset;
-          const tagEnd = child.position?.end.offset;
-          const tag =
-            tagStart === undefined || tagEnd === undefined ? "" : markdown.slice(tagStart, tagEnd);
-          for (const match of tag.matchAll(/<(\/)?(?:a|code|pre|script|style)(?=[\s>])[^>]*>/giu)) {
-            protectedHtmlDepth = Math.max(0, protectedHtmlDepth + (match[1] ? -1 : 1));
+        if (child.type !== "html") {
+          if (literalDepth === 0) {
+            visit(child, inLink || anchorDepth > 0 || LINK_TYPES.has(node.type));
           }
-        } else if (protectedHtmlDepth === 0) visit(child, inLink || LINK_TYPES.has(node.type));
+          continue;
+        }
+        const tagStart = child.position?.start.offset;
+        const tagEnd = child.position?.end.offset;
+        if (tagStart === undefined || tagEnd === undefined) continue;
+        const html = markdown.slice(tagStart, tagEnd);
+        if (html.startsWith("<!--")) continue;
+        // Raw HTML takes no backslash escapes, so its text is replaced as written.
+        let value = "";
+        let last = 0;
+        for (const tag of html.matchAll(HTML_TAG)) {
+          const text = html.slice(last, tag.index);
+          value +=
+            literalDepth === 0 && shortcodes ? replaceEmojiShortcodes(text, shortcodes) : text;
+          value += tag[0];
+          last = tag.index + tag[0].length;
+          const name = tag[2]!.toLowerCase();
+          const step = tag[1] ? -1 : 1;
+          if (EMOJI_LITERAL_HTML_TAGS.has(name)) literalDepth = Math.max(0, literalDepth + step);
+          else if (name === "a") anchorDepth = Math.max(0, anchorDepth + step);
+        }
+        const rest = html.slice(last);
+        value += literalDepth === 0 && shortcodes ? replaceEmojiShortcodes(rest, shortcodes) : rest;
+        if (value !== html) edits.push({ start: tagStart, end: tagEnd, value });
       }
     }
   };

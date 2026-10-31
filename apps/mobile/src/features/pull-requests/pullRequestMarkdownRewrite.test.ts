@@ -52,4 +52,14 @@ describe("rewritePullRequestMarkdown", () => {
       "Closes [#1](https://github.com/team/repo/issues/1) 🚀 `:tada:` [🎉 notes](https://example.com/:tada:) https://example.com/:rocket:",
     );
   });
+
+  it.each([
+    [
+      "keeps reference labels",
+      "[:rocket:] [:tada:][] [:tada: notes][x]\n\n[:rocket:]: https://a.com\n[:tada:]: https://b.com\n[x]: https://c.com",
+      "[:rocket:] [:tada:][] [🎉 notes][x]\n\n[:rocket:]: https://a.com\n[:tada:]: https://b.com\n[x]: https://c.com",
+    ],
+  ])("emoji shortcodes: %s", (_case, text, expected) => {
+    expect(rewritePullRequestMarkdown(text, null, shortcodes)).toBe(expected);
+  });
 });

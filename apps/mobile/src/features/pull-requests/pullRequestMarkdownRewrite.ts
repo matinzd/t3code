@@ -9,6 +9,7 @@ import { unified } from "unified";
 
 type MarkdownNode = {
   readonly type: string;
+  readonly referenceType?: string | undefined;
   readonly position?:
     | {
         readonly start: { readonly offset?: number | undefined };
@@ -49,6 +50,8 @@ export function rewritePullRequestMarkdown(
     const end = node.position?.end.offset;
     // A bare or `<...>` autolink's text is its URL.
     if (node.type === "link" && start !== undefined && markdown[start] !== "[") return;
+    // A shortcut or collapsed reference's text is the label that finds its definition.
+    if (node.type === "linkReference" && node.referenceType !== "full") return;
     if (node.type === "text") {
       if (start === undefined || end === undefined) return;
       const text = markdown.slice(start, end);

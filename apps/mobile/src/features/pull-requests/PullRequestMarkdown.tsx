@@ -10,12 +10,13 @@ import {
 } from "./PullRequestMedia";
 import { videoMimeType } from "@t3tools/shared/video";
 import { createContext, useContext, useMemo, useState } from "react";
+import emojiShortcodeTable from "@t3tools/client-runtime/emoji-shortcodes.json";
 import { changeRequestReferenceAutolinker } from "@t3tools/client-runtime/pull-request-markdown";
 import {
   sourceControlClients,
   type ReferenceAutolink,
 } from "@t3tools/client-runtime/source-control-clients";
-import { linkReferenceAutolinks } from "./pullRequestAutolinks";
+import { rewritePullRequestMarkdown } from "./pullRequestMarkdownRewrite";
 
 import { useOpenPullRequest } from "../../native/useOpenPullRequest";
 import { SelectableMarkdownText } from "../../native/SelectableMarkdownText";
@@ -35,6 +36,8 @@ const AutolinksContext = createContext<((text: string) => ReadonlyArray<Referenc
   null,
 );
 const LineBreaksContext = createContext(false);
+// Native loads the whole bundle at launch, so loading the table lazily saves nothing.
+const EMOJI_SHORTCODES = new Map(Object.entries(emojiShortcodeTable));
 
 export function PullRequestMarkdownRepository(props: {
   /** The change request the markdown belongs to, whose host decides what its text links. */
@@ -124,7 +127,7 @@ function PullRequestMarkdownContent(props: {
   const hostLineBreaks = useContext(LineBreaksContext);
   const autolinks = useContext(AutolinksContext);
   const mediaContext = useContext(PullRequestMediaContext);
-  const markdown = linkReferenceAutolinks(props.markdown, autolinks);
+  const markdown = rewritePullRequestMarkdown(props.markdown, autolinks, EMOJI_SHORTCODES);
   const openPullRequest = useOpenPullRequest();
   const openLink = (href: string) => {
     void openPullRequest(href);

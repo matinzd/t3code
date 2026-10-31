@@ -1,4 +1,8 @@
 import { ExternalLinkIcon, PaperclipIcon } from "lucide-react";
+import {
+  loadedEmojiShortcodes,
+  subscribeEmojiShortcodes,
+} from "@t3tools/client-runtime/emoji-shortcodes";
 import { markdownImageSourceFragment } from "@t3tools/client-runtime/markdown-images";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import {
@@ -7,7 +11,7 @@ import {
   type EnvironmentId,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 import type { PluggableList } from "unified";
 
 import { useAssetUrlRefresh, useAssetUrlState } from "~/assets/assetUrls";
@@ -16,7 +20,7 @@ import { PULL_REQUESTS_PANEL_REF } from "~/rightPanelStore";
 
 import ChatMarkdown from "../ChatMarkdown";
 import { MediaVideoPlayer } from "../media/MediaVideoPlayer";
-import { splitPullRequestBody } from "./pullRequestMarkdown.logic";
+import { splitPullRequestBody, withEmojiShortcodes } from "./pullRequestMarkdown.logic";
 
 export const PullRequestMarkdownContext = createContext<{
   /** Stable per repository, so comments share one renderer and its parse cache. */
@@ -24,6 +28,8 @@ export const PullRequestMarkdownContext = createContext<{
   lineBreaks: boolean;
   threadRef: ScopedThreadRef | null;
 } | null>(null);
+
+const NO_REMARK_PLUGINS: PluggableList = [];
 
 function PullRequestHostVideo({
   environmentId,
@@ -71,6 +77,11 @@ export function PullRequestMarkdown({
   const segments = splitPullRequestBody(text);
   const context = useContext(PullRequestMarkdownContext);
   const resolvedThreadRef = threadRef ?? context?.threadRef ?? undefined;
+  const shortcodes = useSyncExternalStore(subscribeEmojiShortcodes, loadedEmojiShortcodes);
+  const remarkPlugins = withEmojiShortcodes(
+    context?.remarkPlugins ?? NO_REMARK_PLUGINS,
+    shortcodes,
+  );
   return (
     <div
       className={cn(
@@ -89,7 +100,7 @@ export function PullRequestMarkdown({
               threadRef={resolvedThreadRef}
               pullRequestPanelRef={resolvedThreadRef ?? PULL_REQUESTS_PANEL_REF}
               environmentId={environmentId}
-              {...(context ? { extraRemarkPlugins: context.remarkPlugins } : {})}
+              extraRemarkPlugins={remarkPlugins}
               lineBreaks={lineBreaks ?? context?.lineBreaks ?? false}
               sourceControlMedia
             />

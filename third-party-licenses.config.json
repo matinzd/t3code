@@ -1,6 +1,24 @@
 {
   "customNotices": [
     {
+      "bundles": ["ios", "android", "mobile", "web", "desktop"],
+      "license": "MIT",
+      "name": "gemoji",
+      "sourceUrl": "https://github.com/wooorm/gemoji",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "preamble": [
+            "The bundled emoji shortcode table is generated from gemoji, which is derived from GitHub's gemoji."
+          ],
+          "copyrights": [
+            "Copyright (c) 2014 Titus Wormer <tituswormer@gmail.com>",
+            "Copyright (c) 2019 GitHub, Inc."
+          ]
+        }
+      ]
+    },
+    {
       "name": "opencode Office viewers",
       "bundles": ["web"],
       "license": "MIT",

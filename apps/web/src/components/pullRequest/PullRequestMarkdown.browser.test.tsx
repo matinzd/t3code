@@ -5,7 +5,7 @@ import { expect, it } from "vite-plus/test";
 import { render } from "../../../test/render";
 import { PullRequestMarkdown, PullRequestMarkdownContext } from "./PullRequestMarkdown";
 
-async function renderBody(host: string, options: { lineBreaks?: boolean } = {}) {
+async function renderBody(host: string, options: { lineBreaks?: boolean; text?: string } = {}) {
   const context = {
     remarkPlugins: [],
     lineBreaks: sourceControlClients.get(host).hardLineBreaks ?? false,
@@ -42,4 +42,10 @@ it("lets text the host did not write opt out of the host's breaks", async () => 
   await using screen = await renderBody("github", { lineBreaks: false });
   await expect.element(screen.getByText(/first line/)).toBeInTheDocument();
   expect(screen.container.querySelectorAll("p br")).toHaveLength(0);
+});
+
+it("renders emoji shortcodes outside code once the table loads", async () => {
+  await using screen = await renderBody("github", { text: "Ship it :rocket: `:tada:`" });
+  await expect.element(screen.getByText("Ship it 🚀", { exact: false })).toBeInTheDocument();
+  expect(screen.container.querySelector("code")?.textContent).toBe(":tada:");
 });

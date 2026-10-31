@@ -1,3 +1,7 @@
+import {
+  replaceEmojiShortcodes,
+  type EmojiShortcodes,
+} from "@t3tools/client-runtime/emoji-shortcodes";
 import { changeRequestReferenceAutolinker } from "@t3tools/client-runtime/pull-request-markdown";
 import {
   sourceControlClients,
@@ -80,4 +84,30 @@ export function pullRequestAutolinkPlugins(
     autolinkPlugins.set(key, plugins);
   }
   return plugins;
+}
+
+function remarkEmojiShortcodes(options: { readonly shortcodes: EmojiShortcodes }) {
+  const visit = (node: MarkdownNode): void => {
+    if (node.type === "text" && node.value !== undefined) {
+      node.value = replaceEmojiShortcodes(node.value, options.shortcodes);
+    }
+    node.children?.forEach(visit);
+  };
+  return (tree: MarkdownNode) => visit(tree);
+}
+
+const emojiPlugins = new WeakMap<PluggableList, PluggableList>();
+
+/** One list per base list, so adding emoji keeps comments on one shared renderer. */
+export function withEmojiShortcodes(
+  plugins: PluggableList,
+  shortcodes: EmojiShortcodes | null,
+): PluggableList {
+  if (shortcodes === null) return plugins;
+  let combined = emojiPlugins.get(plugins);
+  if (combined === undefined) {
+    combined = [...plugins, [remarkEmojiShortcodes, { shortcodes }]];
+    emojiPlugins.set(plugins, combined);
+  }
+  return combined;
 }
